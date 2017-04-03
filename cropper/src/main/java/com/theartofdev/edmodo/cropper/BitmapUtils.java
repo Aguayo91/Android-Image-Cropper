@@ -84,7 +84,7 @@ final class BitmapUtils {
             File file = getFileFromUri(context, uri);
             if (file.exists()) {
                 ExifInterface ei = new ExifInterface(file.getAbsolutePath());
-                return rotateBitmapByExif(bitmap, ei);
+                return rotateBitmapByExif(bitmap, ei, context, uri);
             }
         } catch (Exception ignored) {
         }
@@ -96,7 +96,7 @@ final class BitmapUtils {
      * If no rotation is required the image will not be rotated.<br>
      * New bitmap is created and the old one is recycled.
      */
-    static RotateBitmapResult rotateBitmapByExif(Bitmap bitmap, ExifInterface exif) {
+    static RotateBitmapResult rotateBitmapByExif(Bitmap bitmap, ExifInterface exif, Context context, Uri uri) {
         int degrees;
         int orientation = exif.getAttributeInt(ExifInterface.TAG_ORIENTATION, ExifInterface.ORIENTATION_NORMAL);
         switch (orientation) {
@@ -109,11 +109,30 @@ final class BitmapUtils {
             case ExifInterface.ORIENTATION_ROTATE_270:
                 degrees = 270;
                 break;
+            case ExifInterface.ORIENTATION_UNDEFINED:
+                degrees = getOrientation(context, uri);
+                break;
             default:
                 degrees = 0;
                 break;
         }
         return new RotateBitmapResult(bitmap, degrees);
+    }
+
+    public static int getOrientation(Context context, Uri photoUri) {
+    /* it's on the external media. */
+        Cursor cursor = context.getContentResolver().query(photoUri,
+                new String[]{MediaStore.Images.ImageColumns.ORIENTATION}, null, null, null);
+
+        int result = -1;
+        if (null != cursor) {
+            if (cursor.moveToFirst()) {
+                result = cursor.getInt(0);
+            }
+            cursor.close();
+        }
+
+        return result;
     }
 
     /**
@@ -362,8 +381,8 @@ final class BitmapUtils {
     /**
      * Crop image bitmap from URI by decoding it with specific width and height to down-sample if required.
      *
-     * @param orgWidth used to get rectangle from points (handle edge cases to limit rectangle)
-     * @param orgHeight used to get rectangle from points (handle edge cases to limit rectangle)
+     * @param orgWidth    used to get rectangle from points (handle edge cases to limit rectangle)
+     * @param orgHeight   used to get rectangle from points (handle edge cases to limit rectangle)
      * @param sampleMulti used to increase the sampling of the image to handle memory issues.
      */
     private static BitmapSampled cropBitmap(Context context, Uri loadedImageUri, float[] points,
