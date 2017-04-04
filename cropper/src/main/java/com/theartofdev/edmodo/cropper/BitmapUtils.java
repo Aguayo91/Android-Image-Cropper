@@ -88,7 +88,7 @@ final class BitmapUtils {
             }
         } catch (Exception ignored) {
         }
-        return new RotateBitmapResult(bitmap, 0);
+        return new RotateBitmapResult(bitmap, getOrientation(context, uri));
     }
 
     /**
