@@ -124,7 +124,7 @@ final class BitmapUtils {
         Cursor cursor = context.getContentResolver().query(photoUri,
                 new String[]{MediaStore.Images.ImageColumns.ORIENTATION}, null, null, null);
 
-        int result = -1;
+        int result = 0;
         if (null != cursor) {
             if (cursor.moveToFirst()) {
                 result = cursor.getInt(0);
@@ -584,6 +584,8 @@ final class BitmapUtils {
             while ((height / 2 / inSampleSize) > reqHeight && (width / 2 / inSampleSize) > reqWidth) {
                 inSampleSize *= 2;
             }
+        } else if (height ==reqHeight||width==reqWidth){
+
         }
         return inSampleSize;
     }
