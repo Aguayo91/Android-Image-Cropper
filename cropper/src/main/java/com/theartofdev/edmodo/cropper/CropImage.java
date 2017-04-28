@@ -35,6 +35,7 @@ import android.os.Parcelable;
 import android.provider.MediaStore;
 import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
+import android.support.annotation.RequiresApi;
 import android.support.v4.app.Fragment;
 
 import java.io.File;
@@ -196,8 +197,10 @@ public final class CropImage {
 
     /**
      * Get the main Camera intent for capturing image using device camera app.
-     * If the outputFileUri is null, a default Uri will be created with {@link #getCaptureImageOutputUri(Context)}, so then
-     * you will be able to get the pictureUri using {@link #getPickImageResultUri(Context, Intent)}. Otherwise, it is just you use
+     * If the outputFileUri is null, a default Uri will be created with {@link #getCaptureImageOutputUri(Context)}, so
+     * then
+     * you will be able to get the pictureUri using {@link #getPickImageResultUri(Context, Intent)}. Otherwise, it is
+     * just you use
      * the Uri passed to this method.
      *
      * @param context used to access Android APIs, like content resolve, it is your activity/fragment/widget.
@@ -465,7 +468,27 @@ public final class CropImage {
          *
          * @param fragment fragment to receive result
          */
+        @RequiresApi(api = Build.VERSION_CODES.HONEYCOMB)
+        public void start(@NonNull Context context, @NonNull android.app.Fragment fragment) {
+            fragment.startActivityForResult(getIntent(context), CROP_IMAGE_ACTIVITY_REQUEST_CODE);
+        }
+
+        /**
+         * Start {@link CropImageActivity}.
+         *
+         * @param fragment fragment to receive result
+         */
         public void start(@NonNull Context context, @NonNull Fragment fragment, @Nullable Class<?> cls) {
+            fragment.startActivityForResult(getIntent(context, cls), CROP_IMAGE_ACTIVITY_REQUEST_CODE);
+        }
+
+        /**
+         * Start {@link CropImageActivity}.
+         *
+         * @param fragment fragment to receive result
+         */
+        @RequiresApi(api = Build.VERSION_CODES.HONEYCOMB)
+        public void start(@NonNull Context context, @NonNull android.app.Fragment fragment, @Nullable Class<?> cls) {
             fragment.startActivityForResult(getIntent(context, cls), CROP_IMAGE_ACTIVITY_REQUEST_CODE);
         }
 
@@ -791,7 +814,7 @@ public final class CropImage {
          * <i>Default: NONE - will read image exif data</i>
          */
         public ActivityBuilder setInitialRotation(int initialRotation) {
-            mOptions.initialRotation = initialRotation;
+            mOptions.initialRotation = (initialRotation + 360) % 360;
             return this;
         }
 
@@ -801,6 +824,15 @@ public final class CropImage {
          */
         public ActivityBuilder setAllowRotation(boolean allowRotation) {
             mOptions.allowRotation = allowRotation;
+            return this;
+        }
+
+        /**
+         * if to allow flipping during cropping.<br>
+         * <i>Default: true</i>
+         */
+        public ActivityBuilder setAllowFlipping(boolean allowFlipping) {
+            mOptions.allowFlipping = allowFlipping;
             return this;
         }
 
@@ -819,7 +851,25 @@ public final class CropImage {
          * <i>Default: 90</i>
          */
         public ActivityBuilder setRotationDegrees(int rotationDegrees) {
-            mOptions.rotationDegrees = rotationDegrees;
+            mOptions.rotationDegrees = (rotationDegrees + 360) % 360;
+            return this;
+        }
+
+        /**
+         * whether the image should be flipped horizontally.<br>
+         * <i>Default: false</i>
+         */
+        public ActivityBuilder setFlipHorizontally(boolean flipHorizontally) {
+            mOptions.flipHorizontally = flipHorizontally;
+            return this;
+        }
+
+        /**
+         * whether the image should be flipped vertically.<br>
+         * <i>Default: false</i>
+         */
+        public ActivityBuilder setFlipVertically(boolean flipVertically) {
+            mOptions.flipVertically = flipVertically;
             return this;
         }
     }
@@ -844,21 +894,26 @@ public final class CropImage {
             }
         };
 
-        public ActivityResult(Bitmap bitmap, Uri uri, Exception error, float[] cropPoints, Rect cropRect, int rotation, int sampleSize) {
-            super(bitmap, uri, error, cropPoints, cropRect, rotation, sampleSize);
+        public ActivityResult(Uri originalUri, Uri uri, Exception error,
+                              float[] cropPoints, Rect cropRect, int rotation, int sampleSize) {
+            super(null, originalUri, null, uri, error, cropPoints, cropRect, rotation, sampleSize);
         }
 
         protected ActivityResult(Parcel in) {
             super(null,
                     (Uri) in.readParcelable(Uri.class.getClassLoader()),
+                    null,
+                    (Uri) in.readParcelable(Uri.class.getClassLoader()),
                     (Exception) in.readSerializable(),
                     in.createFloatArray(),
                     (Rect) in.readParcelable(Rect.class.getClassLoader()),
-                    in.readInt(), in.readInt());
+                    in.readInt(),
+                    in.readInt());
         }
 
         @Override
         public void writeToParcel(Parcel dest, int flags) {
+            dest.writeParcelable(getOriginalUri(), flags);
             dest.writeParcelable(getUri(), flags);
             dest.writeSerializable(getError());
             dest.writeFloatArray(getCropPoints());
