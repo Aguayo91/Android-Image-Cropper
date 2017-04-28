@@ -119,8 +119,7 @@ final class BitmapUtils {
         return new RotateBitmapResult(bitmap, degrees);
     }
 
-    public static int getOrientation(Context context, Uri photoUri) {
-    /* it's on the external media. */
+    private static int getOrientation(Context context, Uri photoUri) {
         Cursor cursor = context.getContentResolver().query(photoUri,
                 new String[]{MediaStore.Images.ImageColumns.ORIENTATION}, null, null, null);
 
